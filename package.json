@@ -1,6 +1,6 @@
 {
   "name": "centplayer",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A streaming-style React video player with content-aware controls, intro/outro skipping, episode navigation, and picture-in-picture.",
   "keywords": [
     "react",

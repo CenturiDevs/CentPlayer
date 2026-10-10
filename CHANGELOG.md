@@ -4,6 +4,13 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] — 2026-10-10
+
+### Fixed
+
+- The dim overlay now fades out together with the auto-hiding controls instead of
+  staying on for the entire playback.
+
 ## [0.1.0] — 2026-09-26
 
 First release.

@@ -45,6 +45,11 @@
     inset: 0;
     background: rgba(0, 0, 0, 0.35);
     pointer-events: none;
+    transition: opacity 300ms ease;
+}
+
+.cp-root[data-chrome="false"] .cp-dimmer {
+    opacity: 0;
 }
 
 .cp-back {
