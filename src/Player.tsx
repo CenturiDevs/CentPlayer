@@ -1,8 +1,7 @@
-import { useCallback, useRef } from "react";
-import type { KeyboardEvent as ReactKeyboardEvent, MouseEvent as ReactMouseEvent } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { KeyboardEvent as ReactKeyboardEvent, MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from "react";
 import { Chrome } from "./components/Chrome";
 import { Icon } from "./components/Icon";
-import { IconButton } from "./components/IconButton";
 import { MiniProgress } from "./components/MiniProgress";
 import { SurfaceFeedback } from "./components/SurfaceFeedback";
 import { resolveFeatures } from "./core/config";
@@ -15,6 +14,8 @@ import type { SurfaceCue } from "./hooks/useSurfaceCue";
 import { useSurfaceCue } from "./hooks/useSurfaceCue";
 import "./styles/player.css";
 
+// a single click waits this long before it acts, so a following click can
+// cancel it and be treated as a double click instead
 const DOUBLE_CLICK_MS = 300;
 
 export function Player({
@@ -27,6 +28,8 @@ export function Player({
     outro,
     features: featureOverrides,
     view = "default",
+    layout = "both",
+    fit,
     autoPlay = false,
     autoAdvance = true,
     muted = false,
@@ -48,6 +51,7 @@ export function Player({
     const player = usePlayer({
         src,
         view,
+        fit,
         autoPlay,
         muted,
         startAt,
@@ -57,12 +61,15 @@ export function Player({
         onEnded: handleEnded,
     });
 
-    const { videoRef, containerRef, isPlaying, isReady, isTheater } = player;
+    const { videoRef, containerRef, isPlaying, isReady, isTheater, fit: activeFit } = player;
     // these come out of usePlayer as stable useCallbacks, so pulling them
     // off the controller by name keeps the handlers below stable too
     const { togglePlay, seekBy } = player;
 
-    const { controlsVisible, wake, sleep } = useAutoHide(isPlaying);
+    const { controlsVisible, wake, sleep, toggle: toggleChrome } = useAutoHide(isPlaying);
+    // the settings sheet is part of the chrome, so hold it open while it is up
+    const [settingsOpen, setSettingsOpen] = useState(false);
+    const chromeVisible = controlsVisible || settingsOpen;
     const handleShortcut = usePlayerKeyboard(player);
     const { cue, nonce, show: showCue } = useSurfaceCue();
 
@@ -79,22 +86,46 @@ export function Player({
         togglePlay();
     }, [togglePlay, wake]);
 
-    const lastSurfaceClickRef = useRef(0);
+    // a tap only touches the chrome on devices without a hovering pointer
+    const handlePointerMove = useCallback(
+        (event: ReactPointerEvent<HTMLDivElement>) => {
+            if (event.pointerType === "mouse") wake();
+        },
+        [wake],
+    );
 
-    const handleSurfaceClick = useCallback(
+    const pendingClickRef = useRef<number | null>(null);
+
+    const clearPendingClick = useCallback(() => {
+        if (pendingClickRef.current !== null) {
+            window.clearTimeout(pendingClickRef.current);
+            pendingClickRef.current = null;
+        }
+    }, []);
+
+    useEffect(() => clearPendingClick, [clearPendingClick]);
+
+    // single click: pull the chrome away (or bring it back) for a clean view.
+    // deferred so the second click of a double click can take over instead.
+    const handleSurfaceClick = useCallback(() => {
+        clearPendingClick();
+        pendingClickRef.current = window.setTimeout(() => {
+            pendingClickRef.current = null;
+            toggleChrome();
+        }, DOUBLE_CLICK_MS);
+    }, [clearPendingClick, toggleChrome]);
+
+    // double click: the outer thirds seek, the middle pauses or plays
+    const handleSurfaceDoubleClick = useCallback(
         (event: ReactMouseEvent<HTMLVideoElement>) => {
+            clearPendingClick();
             wake();
 
-            // one seek per click, however many clicks the double-click fires
-            const now = Date.now();
-            if (now - lastSurfaceClickRef.current < DOUBLE_CLICK_MS) {
-                lastSurfaceClickRef.current = 0;
+            const rect = event.currentTarget.getBoundingClientRect();
+            if (rect.width === 0) {
+                togglePlay();
                 return;
             }
-            lastSurfaceClickRef.current = now;
-
-            const rect = event.currentTarget.getBoundingClientRect();
-            if (rect.width === 0) return handleTogglePlay();
 
             const ratio = (event.clientX - rect.left) / rect.width;
             const delta = surfaceSeekDelta(ratio);
@@ -107,7 +138,7 @@ export function Player({
             seekBy(delta);
             showCue(delta < 0 ? "back10" : "forward10");
         },
-        [handleTogglePlay, seekBy, showCue, togglePlay, wake],
+        [clearPendingClick, seekBy, showCue, togglePlay, wake],
     );
 
     const handleCueSeek = useCallback(
@@ -129,10 +160,11 @@ export function Player({
             ref={containerRef}
             className={`cp-root${className ? ` ${className}` : ""}`}
             tabIndex={0}
-            data-chrome={controlsVisible}
+            data-chrome={chromeVisible}
             data-theater={isTheater}
+            data-fit={activeFit}
             onKeyDown={handleKeyDown}
-            onMouseMove={wake}
+            onPointerMove={handlePointerMove}
             onMouseLeave={sleep}
         >
             <video
@@ -143,15 +175,12 @@ export function Player({
                 preload="metadata"
                 playsInline
                 onClick={handleSurfaceClick}
+                onDoubleClick={handleSurfaceDoubleClick}
             />
 
             <div className="cp-dimmer" />
 
             <SurfaceFeedback key={nonce} cue={cue} />
-
-            <div className="cp-back">
-                <IconButton name="back" label="Go back" onClick={handleBack} />
-            </div>
 
             {!isReady && (
                 <div className="cp-loading">
@@ -159,7 +188,7 @@ export function Player({
                 </div>
             )}
 
-            {isReady && !isPlaying && (
+            {isReady && !isPlaying && chromeVisible && (
                 <button className="cp-bigplay" onClick={handleTogglePlay} aria-label="Play">
                     <Icon name="play" />
                 </button>
@@ -170,15 +199,18 @@ export function Player({
                 features={features}
                 title={title}
                 description={description}
+                layout={layout}
+                onBack={handleBack}
                 onPrevious={onPrevious}
                 onNext={onNext}
                 onTogglePlay={handleTogglePlay}
                 onSeekCue={handleCueSeek}
+                onSettingsOpenChange={setSettingsOpen}
                 intro={intro}
                 outro={outro}
             />
 
-            {!controlsVisible && <MiniProgress player={player} />}
+            {!chromeVisible && <MiniProgress player={player} />}
         </div>
     );
 }

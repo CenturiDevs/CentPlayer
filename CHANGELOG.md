@@ -4,6 +4,27 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] — 2026-10-12
+
+### Added
+
+- Responsive chrome for phones: the description is hidden, the title moves next to the back
+  button, and the controls and skip button use a compact size.
+- A settings menu (gear) with Display fit modes and a playback Speed control.
+- `fit` prop (`contain`, `cover`, `fill`, `none`) controlling how the video fills the frame,
+  defaulting to `cover`.
+- `layout` prop (`both`, `fullscreen`, `expand`) choosing which view control the toolbar shows.
+
+### Changed
+
+- Surface interaction reworked: a single click now toggles the chrome between full and
+  video-only instead of seeking; a double click seeks back/forward 10 s on the left/right
+  third and toggles playback in the middle.
+- Fullscreen and expanded view are now mutually exclusive.
+- On phones the back button lives inside the top chrome and hides with the controls, and the
+  large center play button is hidden.
+- Entering fullscreen requests a landscape orientation lock where the browser supports it.
+
 ## [0.1.1] — 2026-10-10
 
 ### Fixed

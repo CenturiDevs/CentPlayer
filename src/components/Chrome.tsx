@@ -1,4 +1,4 @@
-import type { PlayerFeatures, Segment } from "../core/config";
+import type { PlayerFeatures, PlayerLayout, Segment } from "../core/config";
 import type { PlayerController } from "../core/usePlayer";
 import type { SurfaceCue } from "../hooks/useSurfaceCue";
 import { EpisodeButton } from "./EpisodeButton";
@@ -12,12 +12,15 @@ import { VolumeControl } from "./VolumeControl";
 interface ChromeProps {
     player: PlayerController;
     features: PlayerFeatures;
+    layout: PlayerLayout;
     title?: string;
     description?: string;
+    onBack: () => void;
     onPrevious?: () => void;
     onNext?: () => void;
     onTogglePlay: () => void;
     onSeekCue: (cue: SurfaceCue) => void;
+    onSettingsOpenChange?: (open: boolean) => void;
     intro?: Segment;
     outro?: Segment;
 }
@@ -25,12 +28,15 @@ interface ChromeProps {
 export function Chrome({
     player,
     features,
+    layout,
     title,
     description,
+    onBack,
     onPrevious,
     onNext,
     onTogglePlay,
     onSeekCue,
+    onSettingsOpenChange,
     intro,
     outro,
 }: ChromeProps) {
@@ -44,6 +50,11 @@ export function Chrome({
     return (
         <div className="cp-chrome">
             <div className="cp-scrim" />
+
+            <div className="cp-top">
+                <IconButton name="back" label="Go back" onClick={onBack} />
+                {title && <h2 className="cp-top-title">{title}</h2>}
+            </div>
 
             <div className="cp-bottom">
                 <InfoPanel title={title} description={description} />
@@ -96,7 +107,11 @@ export function Chrome({
 
                 <Timeline player={player} segments={segments} />
 
-                <MetaRow player={player} />
+                <MetaRow
+                    player={player}
+                    layout={layout}
+                    onSettingsOpenChange={onSettingsOpenChange}
+                />
             </div>
         </div>
     );

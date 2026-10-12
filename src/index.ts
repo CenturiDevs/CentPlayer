@@ -6,9 +6,11 @@ export type {
     ContentType,
     PlayerEvents,
     PlayerFeatures,
+    PlayerLayout,
     PlayerNavigation,
     PlayerView,
     Segment,
+    VideoFit,
 } from "./core/config";
 
 export { surfaceSeekDelta, surfaceZone } from "./core/surface";

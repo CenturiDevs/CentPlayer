@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { PlayerEvents, PlayerView, Segment } from "./config";
+import type { PlayerEvents, PlayerView, Segment, VideoFit } from "./config";
 
 const clamp = (value: number, min: number, max: number) =>
     Math.min(Math.max(value, min), max);
@@ -11,6 +11,33 @@ type WebkitVideo = HTMLVideoElement & {
 type WebkitContainer = HTMLDivElement & {
     webkitRequestFullscreen?: () => Promise<void>;
 };
+
+type OrientationLock = {
+    lock?: (orientation: string) => Promise<void>;
+    unlock?: () => void;
+};
+
+// Mobile browsers only honour this while an element is fullscreen, and it is
+// unsupported on desktop, so every entry point fails softly.
+function screenOrientation(): OrientationLock | undefined {
+    return (screen as unknown as { orientation?: OrientationLock }).orientation;
+}
+
+function lockLandscape() {
+    try {
+        void screenOrientation()?.lock?.("landscape").catch(() => {});
+    } catch {
+        // orientation lock threw synchronously; nothing to recover from
+    }
+}
+
+function unlockOrientation() {
+    try {
+        screenOrientation()?.unlock?.();
+    } catch {
+        // ignore unsupported unlock
+    }
+}
 
 function supportsPictureInPicture(video: HTMLVideoElement) {
     if (video.disablePictureInPicture) return false;
@@ -24,6 +51,7 @@ function supportsPictureInPicture(video: HTMLVideoElement) {
 export interface UsePlayerOptions extends PlayerEvents {
     src: string;
     view?: PlayerView;
+    fit?: VideoFit;
     autoPlay?: boolean;
     muted?: boolean;
     startAt?: number;
@@ -32,8 +60,16 @@ export interface UsePlayerOptions extends PlayerEvents {
 }
 
 export function usePlayer(options: UsePlayerOptions) {
-    const { src, view = "default", autoPlay = false, muted = false, startAt = 0, intro, outro } =
-        options;
+    const {
+        src,
+        view = "default",
+        fit: initialFit = "cover",
+        autoPlay = false,
+        muted = false,
+        startAt = 0,
+        intro,
+        outro,
+    } = options;
     const {
         onPlay,
         onPause,
@@ -60,6 +96,8 @@ export function usePlayer(options: UsePlayerOptions) {
     const [buffered, setBuffered] = useState(0);
     const [volume, setVolume] = useState(1);
     const [isMuted, setIsMuted] = useState(muted);
+    const [fit, setFit] = useState<VideoFit>(initialFit);
+    const [playbackRate, setPlaybackRate] = useState(1);
     const [skippedIntro, setSkippedIntro] = useState(false);
     const [skippedOutro, setSkippedOutro] = useState(false);
 
@@ -72,9 +110,17 @@ export function usePlayer(options: UsePlayerOptions) {
         setIsTheater(view === "expanded");
     }
 
+    // mirror the controlled fit prop the same way `view` is handled above
+    const [lastFit, setLastFit] = useState(initialFit);
+    if (lastFit !== initialFit) {
+        setLastFit(initialFit);
+        setFit(initialFit);
+    }
+
     const scrubbingRef = useRef(false);
     const resumeAfterScrubRef = useRef(false);
     const lastEmitRef = useRef(0);
+    const playbackRateRef = useRef(1);
     const eventsRef = useRef<PlayerEvents>({});
     // the load effect is keyed on src alone, so it reads these through a ref
     // rather than listing them as deps — otherwise a parent re-render that
@@ -171,6 +217,9 @@ export function usePlayer(options: UsePlayerOptions) {
         const element = containerRef.current;
         if (!element || document.fullscreenElement) return;
 
+        // expanded and fullscreen are mutually exclusive layouts
+        setIsTheater(false);
+
         const target = element as WebkitContainer;
         if (target.requestFullscreen) {
             void target.requestFullscreen().catch(() => {});
@@ -193,7 +242,20 @@ export function usePlayer(options: UsePlayerOptions) {
     }, [requestFullscreen, exitFullscreen]);
 
     const toggleTheater = useCallback(() => {
-        setIsTheater((prev) => !prev);
+        setIsTheater((prev) => {
+            const next = !prev;
+            // leaving expanded for fullscreen (and vice versa) keeps the two
+            // layouts from fighting over the frame
+            if (next) exitFullscreen();
+            return next;
+        });
+    }, [exitFullscreen]);
+
+    const changePlaybackRate = useCallback((rate: number) => {
+        playbackRateRef.current = rate;
+        const video = videoRef.current;
+        if (video) video.playbackRate = rate;
+        setPlaybackRate(rate);
     }, []);
 
     const togglePip = useCallback(() => {
@@ -281,7 +343,17 @@ export function usePlayer(options: UsePlayerOptions) {
     }, [view, requestFullscreen, exitFullscreen]);
 
     useEffect(() => {
-        const handle = () => setIsFullscreen(document.fullscreenElement !== null);
+        const handle = () => {
+            const active = document.fullscreenElement !== null;
+            setIsFullscreen(active);
+            if (active) {
+                setIsTheater(false);
+                // phones can only rotate while fullscreen, so ask for landscape
+                lockLandscape();
+            } else {
+                unlockOrientation();
+            }
+        };
         document.addEventListener("fullscreenchange", handle);
         return () => document.removeEventListener("fullscreenchange", handle);
     }, []);
@@ -312,6 +384,7 @@ export function usePlayer(options: UsePlayerOptions) {
             setIsReady(true);
             setVolume(video.volume);
             setIsMuted(video.muted);
+            video.playbackRate = playbackRateRef.current;
             if (initialTime > 0) video.currentTime = clamp(initialTime, 0, total || initialTime);
             if (shouldAutoPlay) void video.play().catch(() => setIsPlaying(false));
             readBuffered();
@@ -388,6 +461,8 @@ export function usePlayer(options: UsePlayerOptions) {
         buffered,
         volume,
         isMuted,
+        fit,
+        playbackRate,
         inIntro,
         inOutro,
         play,
@@ -396,10 +471,12 @@ export function usePlayer(options: UsePlayerOptions) {
         seek,
         seekBy,
         changeVolume,
+        changePlaybackRate,
         toggleMute,
         toggleFullscreen,
         toggleTheater,
         togglePip,
+        setFit,
         beginScrub,
         scrubTo,
         endScrub,

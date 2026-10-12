@@ -2,6 +2,12 @@ export type ContentType = "anime" | "movie" | "series";
 
 export type PlayerView = "default" | "expanded" | "fullscreen";
 
+/** Which layout control(s) the toolbar exposes. */
+export type PlayerLayout = "both" | "fullscreen" | "expand";
+
+/** How the video is fitted inside the player, mirroring YouTube's display menu. */
+export type VideoFit = "contain" | "cover" | "fill" | "none";
+
 export interface Segment {
     start: number;
     end: number;
@@ -66,6 +72,10 @@ export interface CentPlayerProps extends PlayerEvents, PlayerNavigation {
     /** Merged over the preset for `type`. */
     features?: Partial<PlayerFeatures>;
     view?: PlayerView;
+    /** Which layout control shows in the toolbar. Defaults to `both`. */
+    layout?: PlayerLayout;
+    /** How the video letterboxes inside the frame. Defaults to `cover`. */
+    fit?: VideoFit;
     autoPlay?: boolean;
     /** Calls `onNext` when playback ends. Requires episode navigation. */
     autoAdvance?: boolean;
