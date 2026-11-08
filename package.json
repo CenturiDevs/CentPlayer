@@ -1,6 +1,6 @@
 {
   "name": "centplayer",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "A streaming-style React video player with content-aware controls, intro/outro skipping, episode navigation, and picture-in-picture.",
   "keywords": [
     "react",
@@ -13,7 +13,9 @@
   ],
   "license": "MIT",
   "type": "module",
-  "sideEffects": ["**/*.css"],
+  "sideEffects": [
+    "**/*.css"
+  ],
   "main": "./dist-lib/centplayer.cjs",
   "module": "./dist-lib/centplayer.js",
   "types": "./dist-lib/types/index.d.ts",
@@ -29,7 +31,12 @@
     },
     "./package.json": "./package.json"
   },
-  "files": ["dist-lib", "README.md", "CHANGELOG.md", "LICENSE"],
+  "files": [
+    "dist-lib",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "npm run build:lib && npm run build:demo",

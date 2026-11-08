@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent, MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from "react";
 import { Chrome } from "./components/Chrome";
 import { Icon } from "./components/Icon";
-import { MiniProgress } from "./components/MiniProgress";
 import { SurfaceFeedback } from "./components/SurfaceFeedback";
 import { resolveFeatures } from "./core/config";
 import type { CentPlayerProps } from "./core/config";
@@ -26,6 +25,7 @@ export function Player({
     description,
     intro,
     outro,
+    chapters,
     features: featureOverrides,
     view = "default",
     layout = "both",
@@ -208,9 +208,8 @@ export function Player({
                 onSettingsOpenChange={setSettingsOpen}
                 intro={intro}
                 outro={outro}
+                chapters={chapters}
             />
-
-            {!chromeVisible && <MiniProgress player={player} />}
         </div>
     );
 }

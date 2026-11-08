@@ -205,21 +205,6 @@
     pointer-events: none;
 }
 
-.cp-mini {
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    height: 3px;
-    background: rgba(255, 255, 255, 0.25);
-    pointer-events: none;
-}
-
-.cp-mini-played {
-    height: 100%;
-    background: #fff;
-}
-
 .cp-bottom {
     position: absolute;
     left: 0;
@@ -259,6 +244,8 @@
 
 .cp-desc {
     margin: 5px 0 0;
+    /* keeps the copy clear of the skip button floating above the row */
+    max-width: 68%;
     font-size: 12px;
     line-height: 1.45;
     color: #cccccc;
@@ -449,10 +436,12 @@
 
 .cp-track {
     position: relative;
+    display: flex;
+    align-items: stretch;
+    /* the gap is the "cut out" between chapters */
+    gap: 2px;
     width: 100%;
     height: 4px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.25);
     transition: height 150ms ease;
 }
 
@@ -461,36 +450,40 @@
     height: 6px;
 }
 
-.cp-buffer,
-.cp-played {
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
+.cp-seg {
+    position: relative;
+    flex-basis: 0;
+    min-width: 0;
+    height: 100%;
     border-radius: 999px;
-}
-
-.cp-buffer {
     background: rgba(255, 255, 255, 0.25);
+    overflow: hidden;
 }
 
-.cp-played {
-    background: #fff;
+.cp-seg[data-kind="intro"],
+.cp-seg[data-kind="outro"] {
+    background: #f5c518;
 }
 
-.cp-marker {
+.cp-seg-buffer,
+.cp-seg-played {
     position: absolute;
     top: 0;
     bottom: 0;
-    min-width: 3px;
-    border-radius: 999px;
-    background: #f5c518;
-    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45);
-    pointer-events: none;
+    left: 0;
+}
+
+.cp-seg-buffer {
+    background: rgba(255, 255, 255, 0.35);
+}
+
+.cp-seg-played {
+    background: #fff;
 }
 
 .cp-thumb {
     position: absolute;
+    z-index: 1;
     top: 50%;
     width: 12px;
     height: 12px;
@@ -509,6 +502,9 @@
     position: absolute;
     bottom: 22px;
     transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 6px;
     padding: 3px 7px;
     border-radius: 5px;
     background: rgba(0, 0, 0, 0.85);
@@ -516,6 +512,14 @@
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
     pointer-events: none;
+}
+
+.cp-preview-label {
+    font-weight: 600;
+}
+
+.cp-preview-time {
+    color: #b9b9b9;
 }
 
 .cp-meta {

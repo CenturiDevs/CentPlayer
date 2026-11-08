@@ -4,6 +4,24 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-11-08
+
+### Added
+
+- Timeline chapters: a new `chapters` prop segments the bar like YouTube chapters and shows
+  the chapter label when hovering. Chapters never show a skip button.
+- `Segment` accepts an optional `label`, used for timeline hover labels.
+
+### Changed
+
+- The timeline is now segmented with flexbox and rounded edges instead of drawing intro/outro
+  markers on top. Only intro and outro keep the yellow accent.
+- The description is width-capped so it never collides with the skip button.
+
+### Removed
+
+- The mini progress bar that appeared while the chrome was hidden.
+
 ## [0.2.0] — 2026-10-12
 
 ### Added

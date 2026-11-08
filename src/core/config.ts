@@ -11,6 +11,8 @@ export type VideoFit = "contain" | "cover" | "fill" | "none";
 export interface Segment {
     start: number;
     end: number;
+    /** Shown above the timeline when hovering this range. */
+    label?: string;
 }
 
 export interface PlayerFeatures {
@@ -69,6 +71,11 @@ export interface CentPlayerProps extends PlayerEvents, PlayerNavigation {
     description?: string;
     intro?: Segment;
     outro?: Segment;
+    /**
+     * Timeline chapters. They segment the bar like YouTube chapters but never
+     * show a skip button — only `intro` and `outro` do.
+     */
+    chapters?: Segment[];
     /** Merged over the preset for `type`. */
     features?: Partial<PlayerFeatures>;
     view?: PlayerView;

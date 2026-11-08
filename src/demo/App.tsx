@@ -48,6 +48,13 @@ export default function App() {
                 description={EPISODES[episode]}
                 intro={{ start: 1, end: 3 }}
                 outro={{ start: 7, end: 9 }}
+                chapters={[
+                    { start: 0, end: 1, label: "Cold open" },
+                    { start: 1, end: 3, label: "Intro" },
+                    { start: 3, end: 7, label: "Episode" },
+                    { start: 7, end: 9, label: "Outro" },
+                    { start: 9, end: 12, label: "Next time" },
+                ]}
                 onBack={() => push("onBack")}
                 onPrevious={() => {
                     goTo(episode - 1);

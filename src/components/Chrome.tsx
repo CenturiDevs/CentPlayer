@@ -23,6 +23,7 @@ interface ChromeProps {
     onSettingsOpenChange?: (open: boolean) => void;
     intro?: Segment;
     outro?: Segment;
+    chapters?: Segment[];
 }
 
 export function Chrome({
@@ -39,12 +40,12 @@ export function Chrome({
     onSettingsOpenChange,
     intro,
     outro,
+    chapters,
 }: ChromeProps) {
     const { isPlaying, inIntro, inOutro } = player;
 
-    const showSegments = features.introSkip;
-    const segments = showSegments ? [intro, outro].filter((s): s is Segment => Boolean(s)) : [];
-    const showSkip = showSegments && (inIntro || inOutro);
+    const showIntroOutro = features.introSkip;
+    const showSkip = showIntroOutro && (inIntro || inOutro);
     const showEpisodes = features.episodeNavigation;
 
     return (
@@ -105,7 +106,12 @@ export function Chrome({
                     </div>
                 </div>
 
-                <Timeline player={player} segments={segments} />
+                <Timeline
+                    player={player}
+                    chapters={chapters}
+                    intro={showIntroOutro ? intro : undefined}
+                    outro={showIntroOutro ? outro : undefined}
+                />
 
                 <MetaRow
                     player={player}

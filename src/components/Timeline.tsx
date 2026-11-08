@@ -1,20 +1,18 @@
 import { useCallback, useRef, useState } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from "react";
 import type { Segment } from "../core/config";
-import { clamp01, formatTime, segmentStyle } from "../core/format";
+import { clamp01, formatTime } from "../core/format";
+import { buildTimelineBlocks } from "../core/timeline";
 import type { PlayerController } from "../core/usePlayer";
-
-interface MarkerEntry {
-    start: number;
-    style: { left: string; width: string };
-}
 
 interface TimelineProps {
     player: PlayerController;
-    segments: Segment[];
+    chapters?: Segment[];
+    intro?: Segment;
+    outro?: Segment;
 }
 
-export function Timeline({ player, segments }: TimelineProps) {
+export function Timeline({ player, chapters, intro, outro }: TimelineProps) {
     const { duration, currentTime, buffered, isScrubbing } = player;
     const trackRef = useRef<HTMLDivElement>(null);
     // `isScrubbing` off the controller is React state, so it trails a commit
@@ -63,10 +61,13 @@ export function Timeline({ player, segments }: TimelineProps) {
     };
 
     const progress = duration > 0 ? clamp01(currentTime / duration) : 0;
-    const bufferProgress = duration > 0 ? clamp01(buffered) : 0;
-    const markers = segments
-        .map((segment) => ({ start: segment.start, style: segmentStyle(segment, duration) }))
-        .filter((entry): entry is MarkerEntry => entry.style !== null);
+    const bufferTime = clamp01(buffered) * duration;
+    const blocks = buildTimelineBlocks({ chapters, intro, outro, duration });
+    const hoverTime = hoverRatio === null ? null : hoverRatio * duration;
+    const hoverBlock =
+        hoverTime === null
+            ? null
+            : blocks.find((block) => hoverTime >= block.start && hoverTime < block.end) ?? null;
 
     return (
         <div className="cp-timeline-wrap">
@@ -89,17 +90,43 @@ export function Timeline({ player, segments }: TimelineProps) {
                 onPointerLeave={() => setHoverRatio(null)}
             >
                 <div className="cp-track">
-                    <div className="cp-buffer" style={{ width: `${bufferProgress * 100}%` }} />
-                    <div className="cp-played" style={{ width: `${progress * 100}%` }} />
-                    {markers.map(({ start, style }) => (
-                        <div key={start} className="cp-marker" style={style} />
-                    ))}
+                    {blocks.length === 0 ? (
+                        <div className="cp-seg" data-kind="chapter" style={{ flexGrow: 1, flexBasis: 0 }} />
+                    ) : (
+                        blocks.map((block) => {
+                            const span = block.end - block.start;
+                            const played = clamp01((currentTime - block.start) / span);
+                            const loaded = clamp01((bufferTime - block.start) / span);
+                            return (
+                                <div
+                                    key={`${block.start}-${block.end}`}
+                                    className="cp-seg"
+                                    data-kind={block.kind}
+                                    style={{ flexGrow: span, flexBasis: 0 }}
+                                >
+                                    {block.kind === "chapter" && (
+                                        <>
+                                            <div
+                                                className="cp-seg-buffer"
+                                                style={{ width: `${loaded * 100}%` }}
+                                            />
+                                            <div
+                                                className="cp-seg-played"
+                                                style={{ width: `${played * 100}%` }}
+                                            />
+                                        </>
+                                    )}
+                                </div>
+                            );
+                        })
+                    )}
                     <div className="cp-thumb" style={{ left: `${progress * 100}%` }} />
                 </div>
             </div>
             {hoverRatio !== null && (
                 <div className="cp-preview" style={{ left: `${hoverRatio * 100}%` }}>
-                    {formatTime(hoverRatio * duration)}
+                    {hoverBlock?.label && <span className="cp-preview-label">{hoverBlock.label}</span>}
+                    <span className="cp-preview-time">{formatTime(hoverRatio * duration)}</span>
                 </div>
             )}
         </div>
