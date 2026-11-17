@@ -15,6 +15,14 @@ export interface Segment {
     label?: string;
 }
 
+export interface SubtitleTrack {
+    src: string;
+    label: string;
+    srcLang: string;
+    kind?: "subtitles" | "captions";
+    default?: boolean;
+}
+
 export interface PlayerFeatures {
     /** Shows intro/outro markers on the timeline and the skip button. */
     introSkip: boolean;
@@ -76,6 +84,7 @@ export interface CentPlayerProps extends PlayerEvents, PlayerNavigation {
      * show a skip button — only `intro` and `outro` do.
      */
     chapters?: Segment[];
+    subtitles?: SubtitleTrack[];
     /** Merged over the preset for `type`. */
     features?: Partial<PlayerFeatures>;
     view?: PlayerView;

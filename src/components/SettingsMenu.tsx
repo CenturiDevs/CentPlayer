@@ -47,7 +47,15 @@ export function SettingsMenu({
         };
     }, [isOpen]);
 
-    const { fit, setFit, playbackRate, changePlaybackRate } = player;
+    const {
+        fit,
+        setFit,
+        playbackRate,
+        changePlaybackRate,
+        subtitles,
+        subtitleTrack,
+        setSubtitleTrack,
+    } = player;
 
     return (
         <div className="cp-settings" ref={wrapRef} data-open={isOpen}>
@@ -78,6 +86,40 @@ export function SettingsMenu({
                             </button>
                         ))}
                     </div>
+
+                    {subtitles.length > 0 && (
+                        <div className="cp-settings-group">
+                            <span className="cp-settings-heading">Subtitles</span>
+                            <button
+                                type="button"
+                                role="menuitemradio"
+                                aria-checked={subtitleTrack === null}
+                                className="cp-settings-option"
+                                data-active={subtitleTrack === null}
+                                onClick={() => setSubtitleTrack(null)}
+                            >
+                                <span>Off</span>
+                                {subtitleTrack === null && <Icon name="check" className="cp-settings-check" />}
+                            </button>
+                            {subtitles.map((track, index) => {
+                                const active = subtitleTrack === track.src;
+                                return (
+                                    <button
+                                        key={`${track.src}-${index}`}
+                                        type="button"
+                                        role="menuitemradio"
+                                        aria-checked={active}
+                                        className="cp-settings-option"
+                                        data-active={active}
+                                        onClick={() => setSubtitleTrack(track.src)}
+                                    >
+                                        <span>{track.label}</span>
+                                        {active && <Icon name="check" className="cp-settings-check" />}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    )}
 
                     <div className="cp-settings-group">
                         <span className="cp-settings-heading">Speed</span>

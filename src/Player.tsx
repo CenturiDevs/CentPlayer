@@ -26,6 +26,7 @@ export function Player({
     intro,
     outro,
     chapters,
+    subtitles = [],
     features: featureOverrides,
     view = "default",
     layout = "both",
@@ -57,6 +58,7 @@ export function Player({
         startAt,
         intro,
         outro,
+        subtitles,
         ...events,
         onEnded: handleEnded,
     });
@@ -176,7 +178,17 @@ export function Player({
                 playsInline
                 onClick={handleSurfaceClick}
                 onDoubleClick={handleSurfaceDoubleClick}
-            />
+            >
+                {subtitles.map((track, index) => (
+                    <track
+                        key={`${track.src}-${index}`}
+                        kind={track.kind ?? "subtitles"}
+                        src={track.src}
+                        srcLang={track.srcLang}
+                        label={track.label}
+                    />
+                ))}
+            </video>
 
             <div className="cp-dimmer" />
 

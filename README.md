@@ -3,6 +3,7 @@
 A streaming-style video player for React. No runtime dependencies beyond React itself.
 
 - Content-aware controls — `anime`, `series`, and `movie` each get a different set
+- WebVTT subtitle tracks with a settings selector and an Off option
 - Intro/outro segments with timeline markers and a skip button
 - Click-to-focus surface with double-click seeking, like YouTube
 - Fullscreen, expanded view, and picture-in-picture
@@ -35,6 +36,10 @@ export function Watch({ onNextEpisode }: { onNextEpisode: () => void }) {
             description="Pirates sail the Grand Line in search of the One Piece."
             intro={{ start: 82, end: 172 }}
             outro={{ start: 1382, end: 1440 }}
+            subtitles={[
+                { src: "/subs/en.vtt", label: "English", srcLang: "en", default: true },
+                { src: "/subs/es.vtt", label: "Español", srcLang: "es" },
+            ]}
             onNext={onNextEpisode}
         />
     );
@@ -70,6 +75,7 @@ Title, description, and the back button are independent of `type` and render whe
 | `type`        | `"anime" \| "series" \| "movie"`     | `"movie"`   | Selects the feature preset.                      |
 | `title`       | `string`                           | —           | Uppercase heading; above the controls, or beside the back button on phones. |
 | `description` | `string`                           | —           | Clamped to two lines; hidden on phones.           |
+| `subtitles`   | `SubtitleTrack[]`                  | —           | WebVTT tracks listed in the settings menu.        |
 | `intro`       | `Segment`                          | —           | `{ start, end }`. Enables the marker and skip.    |
 | `outro`       | `Segment`                          | —           | `{ start, end }`. Enables the marker and skip.    |
 | `features`    | `Partial<PlayerFeatures>`          | —           | Merged over the preset for `type`.                |
@@ -81,6 +87,12 @@ Title, description, and the back button are independent of `type` and render whe
 | `muted`       | `boolean`                          | `false`     | Changing it does not reset playback.              |
 | `startAt`     | `number`                           | `0`         | Applied once, when the source loads.              |
 | `className`   | `string`                           | `""`        | Appended to the root element.                     |
+
+### Subtitles
+
+`SubtitleTrack` is `{ src, label, srcLang, kind?, default? }`. `kind` defaults to
+`subtitles`; use `captions` for dialogue plus sound descriptions. The selected
+track is kept when `src` changes, and a `default` track is selected on first load.
 
 ### Callbacks
 
@@ -147,6 +159,7 @@ While playing, the controls fade out after 3 seconds of inactivity and return on
 
 The gear button opens a settings sheet:
 
+- **Subtitles** — each `subtitles` entry, plus `Off`. A track with `default: true` starts on.
 - **Display** — how the video is fitted: `Fit to screen` (letterboxed),
   `Expand to fit` (fills the frame and crops), `Stretch`, or `Original`. The
   default is `Expand to fit`; set it with the `fit` prop.
@@ -172,6 +185,7 @@ Intro and outro markers are styled separately under `.cp-marker`, so recolouring
 
 ## Notes
 
+- Subtitle files should be WebVTT. Serve them same-origin or with CORS headers that allow the page.
 - Picture-in-picture and fullscreen are browser APIs. The PiP button is hidden when unsupported, and requests are feature-detected with a `webkitSetPresentationMode` fallback for older Safari.
 - Intro and outro segments are derived from `currentTime`, so the source must be seekable with a known duration. Markers stay hidden until metadata loads.
 - A single click on the surface only toggles the chrome, so a tap never seeks.
@@ -189,7 +203,7 @@ import { usePlayer } from "centplayer";
 import { CONTENT_PRESETS, resolveFeatures } from "centplayer";
 import { formatTime, segmentStyle } from "centplayer";
 import { surfaceZone, surfaceSeekDelta } from "centplayer";
-import type { PlayerController, PlayerLayout, Segment, SurfaceZone, VideoFit } from "centplayer";
+import type { PlayerController, PlayerLayout, Segment, SubtitleTrack, SurfaceZone, VideoFit } from "centplayer";
 ```
 
 `usePlayer` is the headless hook behind the component and is useful if you want the playback state without the UI.

@@ -10,6 +10,7 @@ export type {
     PlayerNavigation,
     PlayerView,
     Segment,
+    SubtitleTrack,
     VideoFit,
 } from "./core/config";
 

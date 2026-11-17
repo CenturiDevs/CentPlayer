@@ -55,6 +55,9 @@ export default function App() {
                     { start: 7, end: 9, label: "Outro" },
                     { start: 9, end: 12, label: "Next time" },
                 ]}
+                subtitles={[
+                    { src: "/test.vtt", label: "English", srcLang: "en", default: true },
+                ]}
                 onBack={() => push("onBack")}
                 onPrevious={() => {
                     goTo(episode - 1);

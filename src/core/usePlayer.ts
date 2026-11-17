@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { PlayerEvents, PlayerView, Segment, VideoFit } from "./config";
+import type { PlayerEvents, PlayerView, Segment, SubtitleTrack, VideoFit } from "./config";
 
 const clamp = (value: number, min: number, max: number) =>
     Math.min(Math.max(value, min), max);
@@ -57,6 +57,7 @@ export interface UsePlayerOptions extends PlayerEvents {
     startAt?: number;
     intro?: Segment;
     outro?: Segment;
+    subtitles?: SubtitleTrack[];
 }
 
 export function usePlayer(options: UsePlayerOptions) {
@@ -69,6 +70,7 @@ export function usePlayer(options: UsePlayerOptions) {
         startAt = 0,
         intro,
         outro,
+        subtitles = [],
     } = options;
     const {
         onPlay,
@@ -98,6 +100,9 @@ export function usePlayer(options: UsePlayerOptions) {
     const [isMuted, setIsMuted] = useState(muted);
     const [fit, setFit] = useState<VideoFit>(initialFit);
     const [playbackRate, setPlaybackRate] = useState(1);
+    const [subtitleTrack, setSubtitleTrackState] = useState<string | null>(
+        () => subtitles.find((track) => track.default)?.src ?? null,
+    );
     const [skippedIntro, setSkippedIntro] = useState(false);
     const [skippedOutro, setSkippedOutro] = useState(false);
 
@@ -126,6 +131,16 @@ export function usePlayer(options: UsePlayerOptions) {
     // rather than listing them as deps — otherwise a parent re-render that
     // changes muted would reload the video
     const loadOptionsRef = useRef({ autoPlay, muted, startAt });
+    const subtitlesRef = useRef(subtitles);
+    const subtitleSelectionRef = useRef(subtitleTrack);
+
+    useEffect(() => {
+        subtitlesRef.current = subtitles;
+    }, [subtitles]);
+
+    useEffect(() => {
+        subtitleSelectionRef.current = subtitleTrack;
+    }, [subtitleTrack]);
 
     useEffect(() => {
         eventsRef.current = {
@@ -258,6 +273,20 @@ export function usePlayer(options: UsePlayerOptions) {
         setPlaybackRate(rate);
     }, []);
 
+    const applySubtitleTrack = useCallback((src: string | null) => {
+        const video = videoRef.current;
+        if (!video) return;
+
+        for (let index = 0; index < video.textTracks.length; index++) {
+            const track = video.textTracks[index];
+            const definition = subtitlesRef.current[index];
+            track.mode = src !== null && definition?.src === src ? "showing" : "disabled";
+        }
+
+        setSubtitleTrackState(src);
+        subtitleSelectionRef.current = src;
+    }, []);
+
     const togglePip = useCallback(() => {
         const video = videoRef.current;
         if (!video) return;
@@ -388,6 +417,7 @@ export function usePlayer(options: UsePlayerOptions) {
             if (initialTime > 0) video.currentTime = clamp(initialTime, 0, total || initialTime);
             if (shouldAutoPlay) void video.play().catch(() => setIsPlaying(false));
             readBuffered();
+            applySubtitleTrack(subtitleSelectionRef.current);
         };
         const handlePlay = () => {
             setIsPlaying(true);
@@ -405,6 +435,9 @@ export function usePlayer(options: UsePlayerOptions) {
         const handleSeeked = () => {
             if (!scrubbingRef.current) setCurrentTime(video.currentTime);
         };
+        const handleTextTrackAdded = () => {
+            applySubtitleTrack(subtitleSelectionRef.current);
+        };
         const handlePipEnter = () => setIsPip(true);
         const handlePipLeave = () => setIsPip(false);
 
@@ -414,6 +447,7 @@ export function usePlayer(options: UsePlayerOptions) {
         video.addEventListener("ended", handleEnded);
         video.addEventListener("progress", handleProgress);
         video.addEventListener("seeked", handleSeeked);
+        video.textTracks.addEventListener("addtrack", handleTextTrackAdded);
         video.addEventListener("enterpictureinpicture", handlePipEnter);
         video.addEventListener("leavepictureinpicture", handlePipLeave);
 
@@ -431,15 +465,28 @@ export function usePlayer(options: UsePlayerOptions) {
             video.removeEventListener("ended", handleEnded);
             video.removeEventListener("progress", handleProgress);
             video.removeEventListener("seeked", handleSeeked);
+            video.textTracks.removeEventListener("addtrack", handleTextTrackAdded);
             video.removeEventListener("enterpictureinpicture", handlePipEnter);
             video.removeEventListener("leavepictureinpicture", handlePipLeave);
         };
-    }, [src, readBuffered]);
+    }, [src, readBuffered, applySubtitleTrack]);
 
     useEffect(() => {
         const video = videoRef.current;
         if (video) video.muted = muted;
     }, [muted]);
+
+    const subtitleKey = subtitles
+        .map((track) => `${track.src}|${track.default ? "1" : "0"}`)
+        .join("|");
+
+    useEffect(() => {
+        const current = subtitleSelectionRef.current;
+        const selected = subtitlesRef.current.some((track) => track.src === current)
+            ? current
+            : (subtitlesRef.current.find((track) => track.default)?.src ?? null);
+        applySubtitleTrack(selected);
+    }, [subtitleKey, applySubtitleTrack]);
 
     const inIntro =
         intro !== undefined && !skippedIntro && currentTime >= intro.start && currentTime < intro.end;
@@ -463,6 +510,8 @@ export function usePlayer(options: UsePlayerOptions) {
         isMuted,
         fit,
         playbackRate,
+        subtitles,
+        subtitleTrack,
         inIntro,
         inOutro,
         play,
@@ -472,6 +521,7 @@ export function usePlayer(options: UsePlayerOptions) {
         seekBy,
         changeVolume,
         changePlaybackRate,
+        setSubtitleTrack: applySubtitleTrack,
         toggleMute,
         toggleFullscreen,
         toggleTheater,
